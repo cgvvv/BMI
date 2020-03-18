@@ -63,7 +63,7 @@ function [X, Y] = positionEstimator(test_data, modelParameters, win_len)
 %     disp('predicted angle')
 %     disp(angle)
 
-    selected_neurons = modelParameters{angle}(3);
+    selected_neurons = modelParameters{angle}(4);
     selected_neurons = selected_neurons{1};
     selected_angle = selected_neurons(:,angle);
     indices = [find(selected_angle==1.)];
@@ -125,13 +125,17 @@ function [X, Y] = positionEstimator(test_data, modelParameters, win_len)
             x_start = X;
             y_start = Y;
         end
+        
+        speed =  modelParameters{angle}{1}.predict(spike_predicted_angle) ;
+        sin =  modelParameters{angle}{2}.predict(spike_predicted_angle) ;
+        cos =  modelParameters{angle}{3}.predict(spike_predicted_angle) ;
 
-
-        Xvelocity =  modelParameters{angle}{1}.predict(spike_predicted_angle) ;
-        Yvelocity =  modelParameters{angle}{2}.predict(spike_predicted_angle) ;
+        Xvelocity = speed*cos;
+        Yvelocity = speed*sin;
 
         X = x_start + Xvelocity;
         Y = y_start + Yvelocity;
+        
 %     x = cumsum(modelParameters{angle}{1}' * smooth_fr);
 %     y = cumsum(modelParameters{angle}{2}' * smooth_fr);
     
