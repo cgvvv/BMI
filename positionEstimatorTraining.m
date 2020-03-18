@@ -12,8 +12,9 @@ function [modelParameters] = positionEstimatorTraining(training_data, scale, thr
     
     for angle = 1:8
         
-        distanceX = NaN;
-        distanceY = NaN;
+        speed = NaN;
+        relative_sin = NaN;
+        relative_cos = NaN;
         spike_angle = zeros(1,1);
         
         start = 1;
@@ -59,8 +60,13 @@ function [modelParameters] = positionEstimatorTraining(training_data, scale, thr
                     spike_angle(window_accu_length+window, neuron) = spike_sum;
                 end
 
-                distanceX(window_accu_length+window) = data(trial, angle).handPos(1,window_start_timestep + win_len)- data(trial, angle).handPos(1,window_start_timestep);
-                distanceY(window_accu_length+window) = data(trial, angle).handPos(2,window_start_timestep + win_len)- data(trial, angle).handPos(2,window_start_timestep);
+                distanceX= data(trial, angle).handPos(1,window_start_timestep + win_len)- data(trial, angle).handPos(1,window_start_timestep);
+                distanceY = data(trial, angle).handPos(2,window_start_timestep + win_len)- data(trial, angle).handPos(2,window_start_timestep);
+                                
+                speed(window_accu_length+window) = sqrt(distanceX^2 + distanceY^2);
+                relative_sin(window_accu_length+window) = distanceY/speed(window_accu_length+window);
+                relative_cos(window_accu_length+window) = distanceX/speed(window_accu_length+window);
+                
                 window_start_timestep = window_start_timestep + win_len;
             end
             window_accu_length = window_accu_length+num_windows;
@@ -73,21 +79,18 @@ function [modelParameters] = positionEstimatorTraining(training_data, scale, thr
         
         disp('training model 1')
         tic;
-%         model1 = fitlm(spike_angle, distanceX);
-        model1 = fitrlinear(spike_angle,distanceX);
-%         model1 = fitrkernel(spike_angle, distanceX);
-%         model1 = fitrgp(spike_angle, distanceX);
-        toc
-        
-        disp('training model 2')
-        tic;
-%         model2 = fitlm(spike_angle,distanceY);
-        model2 = fitrlinear(spike_angle,distanceY);
-%         model2 = fitrkernel(spike_angle,distanceY);
-%         model2 = fitrgp(spike_angle,distanceY);
+        model1 = fitrsvm(spike_angle, speed);
         toc
 
-        modelParameters{angle} = {model1, model2, selected_neurons};
+        tic;
+        model2 = fitrsvm(spike_angle,relative_sin);
+        toc
+
+        tic;
+        model3 = fitrsvm(spike_angle,relative_cos);
+        toc
+
+        modelParameters{angle} = {model1, model2, model3, selected_neurons};
        
     end
     
